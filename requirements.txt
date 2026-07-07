@@ -1,0 +1,13 @@
+pandas
+numpy
+scikit-learn
+joblib
+matplotlib
+seaborn
+plotly
+streamlit
+yfinance
+fredapi
+pytrends
+requests
+scipy
