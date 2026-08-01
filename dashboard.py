@@ -30,14 +30,17 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 warnings.filterwarnings("ignore")
 
-# Resolve project root — works whether run via `streamlit run` or inside Jupyter
+# Resolve project root — works whether dashboard.py is at repo root or in app/ subfolder
 try:
     _THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-    PROJECT_ROOT = os.path.dirname(_THIS_DIR)
+    # If inside an app/ subfolder, go up one level; otherwise use this dir as root
+    if os.path.basename(_THIS_DIR) == "app":
+        PROJECT_ROOT = os.path.dirname(_THIS_DIR)
+    else:
+        PROJECT_ROOT = _THIS_DIR
 except NameError:
     # __file__ not defined in Jupyter — use current working directory
     PROJECT_ROOT = os.getcwd()
-    # If running from app/ subdirectory, go up one level
     if os.path.basename(PROJECT_ROOT) == "app":
         PROJECT_ROOT = os.path.dirname(PROJECT_ROOT)
 
@@ -181,12 +184,29 @@ def load_historical() -> pd.DataFrame:
 @st.cache_resource
 def load_models():
     models = {}
-    if not os.path.exists(MODEL_DIR):
+    # Search multiple candidate locations so it works regardless of repo layout
+    candidates = [
+        MODEL_DIR,
+        os.path.join(os.getcwd(), "models"),
+        os.path.join(os.path.dirname(os.getcwd()), "models"),
+        "models",
+    ]
+    model_dir = None
+    for candidate in candidates:
+        if os.path.exists(candidate) and any(
+            f.endswith(".pkl") for f in os.listdir(candidate)
+        ):
+            model_dir = candidate
+            break
+    if model_dir is None:
         return models
-    for f in os.listdir(MODEL_DIR):
+    for f in os.listdir(model_dir):
         if f.endswith(".pkl"):
             name = f.replace(".pkl", "").replace("_", " ").title()
-            models[name] = joblib.load(os.path.join(MODEL_DIR, f))
+            try:
+                models[name] = joblib.load(os.path.join(model_dir, f))
+            except Exception:
+                pass
     return models
 
 
